@@ -2,72 +2,82 @@
 #include <Gosu/AutoLink.hpp>
 #include <cmath>
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const double WINDOW_WIDTH = 800;
+const double WINDOW_HEIGHT = 600;
+const double POS_LEFT = 150;
+const double POS_MID = 400;
+const double POS_RIGHT = 650;
+const double POS_GROUND = 450;
+const double GRAVITY = 5;
 
 
 class Player
 {
 public:
-	double x;
-	double y;
+	double p_pos_x;
+	double p_pos_y;
 	bool on_ground;
 	Gosu::Image runner;
 
-	Player() : x(WINDOW_WIDTH / 2), y(WINDOW_HEIGHT - 150), on_ground(true), runner("runner.png") {}
+	Player() : p_pos_x(POS_MID), p_pos_y(POS_GROUND), on_ground(true), runner("runner.png") {}
 
 	void update()
 	{
-		if (on_ground == false)
+		while (p_pos_y != POS_GROUND)
 		{
-			while (y != (WINDOW_HEIGHT - 150))
-			{
-				y += 5;
-			}
+			p_pos_y += GRAVITY;
+			on_ground = false;
 		}
-		if (y == (WINDOW_HEIGHT - 150))
+
+		if (p_pos_y == POS_GROUND)
 		{
-			on_ground == true;
+			on_ground = true;
 		}
 	}
 
 	void jump()
 	{
-		y -= 10;
-		on_ground == false;
+		p_pos_y -= 150;
+		on_ground = false;
 	}
 
 	void draw()
 	{
-		runner.draw(x, y, 1);
+		runner.draw(p_pos_x, p_pos_y, 1);
 	}
 };
 
-class Block
+class Obstacle
 {
 public:
-	double x, y, width, height;
-	Gosu::Color color;
+	double width = 50;
+	double position;
+	Gosu::Image obstacle;
 
-	Block(double x, double y, double width, double height, Gosu::Color color)
-		: x(x), y(y), width(width), height(height), color(color) {}
+	Obstacle() : position(POS_MID), obstacle("rakete.png") {}
 
 	void draw() const
 	{
-		Gosu::Graphics::draw_rect(x, y, width, height, color, 0);
+		// obstacle.draw_rot(pos_x, )
 	}
+};
+
+class Huerde
+{
+public:
+
 };
 
 class GameWindow : public Gosu::Window
 {
 private:
 	Player player;
-	Block block;
+	Obstacle obstacle;
 
 public:
-	GameWindow() : Gosu::Window(WINDOW_WIDTH, WINDOW_HEIGHT), player(), block(400, WINDOW_HEIGHT - 50, 100, 50, Gosu::Color::RED)
+	GameWindow() : Gosu::Window(WINDOW_WIDTH, WINDOW_HEIGHT), player(), obstacle()
 	{
-		set_caption("Jump 'n' Run Spiel");
+		set_caption("Jump 'n' Run");
 	}
 
 	void update() override
@@ -75,33 +85,45 @@ public:
 		player.update();
 
 		// Spieler-Bewegung nach rechts
-		if (Gosu::Input::down(Gosu::KB_RIGHT))
+		if (input().down(Gosu::KB_D))
 		{
-			player.x += 5;
+			if (player.p_pos_x == POS_LEFT)
+			{
+				player.p_pos_x = POS_MID;
+			}
+			else if (player.p_pos_x == POS_MID)
+			{
+				player.p_pos_x = POS_RIGHT;
+			}
 		}
 
 		// Spieler-Bewegung nach links
-		if (Gosu::Input::down(Gosu::KB_LEFT))
+		if (input().down(Gosu::KB_A))
 		{
-			player.x -= 5;
+			if (player.p_pos_x == POS_RIGHT)
+			{
+				player.p_pos_x = POS_MID;
+			}
+			else if (player.p_pos_x == POS_MID)
+			{
+				player.p_pos_x = POS_LEFT;
+			}
 		}
 
 		// Sprung auslösen
-		if (Gosu::Input::down(Gosu::KB_SPACE))
+		if (input().down(Gosu::KB_SPACE))
 		{
 			player.jump();
 		}
-
-
 	}
 
 	void draw() override
 	{
 		player.draw();
-		block.draw();
+		obstacle.draw();
 
 		// Boden zeichnen
-		Gosu::Graphics::draw_rect(0, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20, Gosu::Color::GRAY, 0);
+		graphics().draw_rect(0, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20, Gosu::Color::GRAY, 0);
 	}
 };
 

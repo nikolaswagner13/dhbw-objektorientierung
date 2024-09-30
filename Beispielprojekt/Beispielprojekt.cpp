@@ -1,6 +1,9 @@
 #include <Gosu/Gosu.hpp>
 #include <Gosu/AutoLink.hpp>
 #include <cmath>
+#include <iostream>
+
+using namespace std;
 
 const double WINDOW_WIDTH = 800;
 const double WINDOW_HEIGHT = 600;
@@ -14,36 +17,62 @@ const double GRAVITY = 5;
 class Player
 {
 public:
-	double p_pos_x;
-	double p_pos_y;
+	double pos_x;
+	double pos_y;
+	double vel_x;
+	double vel_y;
 	bool on_ground;
 	Gosu::Image runner;
 
-	Player() : p_pos_x(POS_MID), p_pos_y(POS_GROUND), on_ground(true), runner("runner.png") {}
+	Player() : pos_x(POS_MID), pos_y(POS_GROUND), vel_x(0), vel_y(0), on_ground(true), runner("runner.png") {}
 
 	void update()
 	{
-		while (p_pos_y != POS_GROUND)
+		if (!on_ground)
 		{
-			p_pos_y += GRAVITY;
-			on_ground = false;
+			vel_y += 0.5;
 		}
 
-		if (p_pos_y == POS_GROUND)
-		{
-			on_ground = true;
-		}
-	}
+		pos_x += vel_x;
+		pos_y += vel_y;
 
-	void jump()
-	{
-		p_pos_y -= 150;
-		on_ground = false;
+
+
+		if (pos_x <= 0)
+		{
+			pos_x = 0;
+		}
+		if (pos_x >= WINDOW_WIDTH - 50)
+		{
+			pos_x = WINDOW_WIDTH -50;
+		}
 	}
 
 	void draw()
 	{
-		runner.draw(p_pos_x, p_pos_y, 1);
+		runner.draw(pos_x, pos_y, 1);
+	}
+
+	void move()
+	{
+		if (Gosu::Input::down(Gosu::KB_D))
+		{
+			vel_x = 5;
+		}
+		else if (Gosu::Input::down(Gosu::KB_A))
+		{
+			vel_x = -5;
+		}
+		else
+		{
+			vel_x = 0;
+		}
+
+		if (on_ground && Gosu::Input::down(Gosu::KB_SPACE))
+		{
+			vel_y = -10;
+			on_ground = false;
+		}
 	}
 };
 
@@ -62,7 +91,14 @@ public:
 	}
 };
 
-class Huerde
+class Ground : public Obstacle
+{
+public:
+
+};
+
+
+class Barrier : public Obstacle
 {
 public:
 
@@ -83,44 +119,12 @@ public:
 	void update() override
 	{
 		player.update();
-
-		// Spieler-Bewegung nach rechts
-		if (input().down(Gosu::KB_D))
-		{
-			if (player.p_pos_x == POS_LEFT)
-			{
-				player.p_pos_x = POS_MID;
-			}
-			else if (player.p_pos_x == POS_MID)
-			{
-				player.p_pos_x = POS_RIGHT;
-			}
-		}
-
-		// Spieler-Bewegung nach links
-		if (input().down(Gosu::KB_A))
-		{
-			if (player.p_pos_x == POS_RIGHT)
-			{
-				player.p_pos_x = POS_MID;
-			}
-			else if (player.p_pos_x == POS_MID)
-			{
-				player.p_pos_x = POS_LEFT;
-			}
-		}
-
-		// Sprung auslösen
-		if (input().down(Gosu::KB_SPACE))
-		{
-			player.jump();
-		}
+		player.move();
 	}
 
 	void draw() override
 	{
 		player.draw();
-		obstacle.draw();
 
 		// Boden zeichnen
 		graphics().draw_rect(0, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20, Gosu::Color::GRAY, 0);

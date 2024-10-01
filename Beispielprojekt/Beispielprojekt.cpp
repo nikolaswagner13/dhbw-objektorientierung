@@ -13,7 +13,6 @@ const double POS_RIGHT = 650;
 const double POS_GROUND = 450;
 const double GRAVITY = 5;
 
-
 class Player
 {
 public:
@@ -33,18 +32,13 @@ public:
 			vel_y += 0.5;
 		}
 
-		pos_x += vel_x;
-		pos_y += vel_y;
-
-
-
 		if (pos_x <= 0)
 		{
 			pos_x = 0;
 		}
 		if (pos_x >= WINDOW_WIDTH - 50)
 		{
-			pos_x = WINDOW_WIDTH -50;
+			pos_x = WINDOW_WIDTH - 50;
 		}
 	}
 
@@ -73,30 +67,39 @@ public:
 			vel_y = -10;
 			on_ground = false;
 		}
+		pos_x += vel_x;
+		pos_y += vel_y;
 	}
 };
 
 class Obstacle
 {
 public:
-	double width = 50;
-	double position;
+	double width;
+	double pos_x;
+	double pos_y;
 	Gosu::Image obstacle;
 
-	Obstacle() : position(POS_MID), obstacle("rakete.png") {}
+	Obstacle() {};
+	Obstacle(double pos_x, double pos_y, Gosu::Image obstacle) : pos_x(pos_x), pos_y(pos_y), obstacle(obstacle) {}
 
-	void draw() const
+	void draw()
 	{
-		// obstacle.draw_rot(pos_x, )
+
 	}
 };
 
 class Ground : public Obstacle
 {
 public:
+	Ground() {};
+	Ground(double pos_x, double pos_y, Gosu::Image obstacle) : Obstacle(pos_x, pos_y, obstacle) {}
 
+	void draw()
+	{
+		Gosu::Graphics::draw_rect(0, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20, Gosu::Color::GREEN, 0);
+	}
 };
-
 
 class Barrier : public Obstacle
 {
@@ -108,10 +111,11 @@ class GameWindow : public Gosu::Window
 {
 private:
 	Player player;
-	Obstacle obstacle;
+	Ground ground;
+
 
 public:
-	GameWindow() : Gosu::Window(WINDOW_WIDTH, WINDOW_HEIGHT), player(), obstacle()
+	GameWindow() : Gosu::Window(WINDOW_WIDTH, WINDOW_HEIGHT), player(), ground()
 	{
 		set_caption("Jump 'n' Run");
 	}
@@ -120,6 +124,7 @@ public:
 	{
 		player.update();
 		player.move();
+		ground.draw();
 	}
 
 	void draw() override

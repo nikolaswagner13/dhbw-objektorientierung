@@ -2,6 +2,7 @@
 #include <Gosu/AutoLink.hpp>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -13,126 +14,121 @@ const double POS_RIGHT = 650;
 const double POS_GROUND = 450;
 const double GRAVITY = 5;
 
-class Player
-{
+// Einfache Plattform-Klasse
+class Platform {
 public:
-	double pos_x;
-	double pos_y;
-	double vel_x;
-	double vel_y;
+	double x, y, width, height;
+	Platform(double x, double y, double width, double height)
+		: x(x), y(y), width(width), height(height) {}
+
+	void draw() const {
+		Gosu::Graphics::draw_rect(x, y, width, height, Gosu::Color::GREEN, 0);
+	}
+};
+
+// Spielerklasse
+class Player {
+public:
+	double x, y, width, height, vel_x, vel_y;
 	bool on_ground;
 	Gosu::Image runner;
 
-	Player() : pos_x(POS_MID), pos_y(POS_GROUND), vel_x(0), vel_y(0), on_ground(true), runner("runner.png") {}
+	Player() : x(POS_MID), y(POS_GROUND), width(64), height(160), vel_x(0), vel_y(0), on_ground(false), runner("runner.png") {}
 
-	void update()
-	{
-		if (!on_ground)
-		{
-			vel_y += 0.5;
-		}
-
-		if (pos_x <= 0)
-		{
-			pos_x = 0;
-		}
-		if (pos_x >= WINDOW_WIDTH - 50)
-		{
-			pos_x = WINDOW_WIDTH - 50;
-		}
+	// Spieler zeichnen
+	void draw() const {
+		runner.draw(x, y);
 	}
 
-	void draw()
-	{
-		runner.draw(pos_x, pos_y, 1);
+	// Spielerbewegung und Schwerkraft anwenden
+	void update(const std::vector<Platform>& platforms) {
+		// Schwerkraft anwenden
+		if (!on_ground) {
+			vel_y += 0.5; // Beschleunigung nach unten
+		}
+
+		// Bewegung
+		x += vel_x;
+		y += vel_y;
+
+		// Kollisionsüberprüfung
+		for (const auto& platform : platforms) {
+			if (collides_with(platform)) {
+				if (vel_y > 0) { // Fallt nach unten
+					y = platform.y - height;
+					vel_y = 0;
+					on_ground = true;
+				}
+			}
+		}
+
+		// Seitenbegrenzungen (linke und rechte Bildschirmseite)
+		if (x < 0) x = 0;
+		if (x + width > 800) x = 800 - width;
 	}
 
-	void move()
-	{
-		if (Gosu::Input::down(Gosu::KB_D))
-		{
-			vel_x = 5;
-		}
-		else if (Gosu::Input::down(Gosu::KB_A))
-		{
+	// Tastensteuerung
+	void handle_input() {
+		// Links und Rechts Bewegung
+		if (Gosu::Input::down(Gosu::KB_A)) {
 			vel_x = -5;
 		}
-		else
-		{
+		else if (Gosu::Input::down(Gosu::KB_D)) {
+			vel_x = 5;
+		}
+		else {
 			vel_x = 0;
 		}
 
-		if (on_ground && Gosu::Input::down(Gosu::KB_SPACE))
-		{
-			vel_y = -10;
+		// Springen
+		if (on_ground && Gosu::Input::down(Gosu::KB_SPACE)) {
+			vel_y = -10; // Springkraft
 			on_ground = false;
 		}
-		pos_x += vel_x;
-		pos_y += vel_y;
+	}
+
+private:
+	// Kollisionsabfrage mit Plattformen
+	bool collides_with(const Platform& platform) const {
+		return x < platform.x + platform.width &&
+			x + width > platform.x &&
+			y < platform.y + platform.height &&
+			y + height > platform.y;
 	}
 };
 
-class Obstacle
-{
-public:
-	double width;
-	double pos_x;
-	double pos_y;
-	Gosu::Image obstacle;
-
-	Obstacle() {};
-	Obstacle(double pos_x, double pos_y, Gosu::Image obstacle) : pos_x(pos_x), pos_y(pos_y), obstacle(obstacle) {}
-
-	void draw()
-	{
-
-	}
-};
-
-class Ground : public Obstacle
-{
-public:
-	Ground() {};
-	Ground(double pos_x, double pos_y, Gosu::Image obstacle) : Obstacle(pos_x, pos_y, obstacle) {}
-
-	void draw()
-	{
-		Gosu::Graphics::draw_rect(0, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20, Gosu::Color::GREEN, 0);
-	}
-};
-
-class Barrier : public Obstacle
-{
-public:
-
-};
-
+// Hauptspielklasse
 class GameWindow : public Gosu::Window
 {
 private:
 	Player player;
-	Ground ground;
-
+	std::vector<Platform> platforms;
+	Gosu::Image runner;
 
 public:
-	GameWindow() : Gosu::Window(WINDOW_WIDTH, WINDOW_HEIGHT), player(), ground()
+	GameWindow() : Gosu::Window(800, 600), runner("runner.png")
 	{
-		set_caption("Jump 'n' Run");
+		set_caption("Jump and Run Spiel");
+
+		// Erstellen von Plattformen
+		platforms.push_back(Platform(0, WINDOW_HEIGHT - 50, WINDOW_WIDTH, 20)); // Boden
 	}
 
-	void update() override
-	{
-		player.update();
-		player.move();
-		ground.draw();
+	// Update des Spiels (60 mal pro Sekunde)
+	void update() override {
+		player.handle_input();
+		player.update(platforms);
 	}
 
-	void draw() override
-	{
+	// Spielfeld zeichnen
+	void draw() override {
+		// Plattformen zeichnen
+		for (const auto& platform : platforms) {
+			platform.draw();
+		}
+
+		// Spieler zeichnen
 		player.draw();
-
-		// Boden zeichnen
-		graphics().draw_rect(0, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20, Gosu::Color::GRAY, 0);
 	}
 };
 
